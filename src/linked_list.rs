@@ -1,12 +1,46 @@
 pub struct LinkedList<T> {
     head: Option<Box<Node<T>>>,
+    len: usize,
 }
 struct Node<T> {
     data: T,
     next: Option<Box<Node<T>>>,
 }
 
+impl<T> Default for LinkedList<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct IntoIter<T>(LinkedList<T>);
+
+impl<T> IntoIterator for LinkedList<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self)
+    }
+}
+
+impl<'a, T> IntoIterator for &'a LinkedList<T> {
+    type IntoIter = Iter<'a, T>;
+    type Item = &'a T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut LinkedList<T> {
+    type IntoIter = IterMut<'a, T>;
+    type Item = &'a mut T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
 
 impl<T> Iterator for IntoIter<T> {
     type Item = T;
@@ -54,7 +88,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 
 impl<T> LinkedList<T> {
     pub fn new() -> Self {
-        LinkedList { head: None }
+        LinkedList { head: None, len: 0 }
     }
 
     pub fn push(&mut self, data: T) {
@@ -62,7 +96,8 @@ impl<T> LinkedList<T> {
             data,
             next: self.head.take(),
         };
-        self.head = Some(Box::new(node))
+        self.head = Some(Box::new(node));
+        self.len += 1;
     }
 
     pub fn pop(&mut self) -> Option<T> {
@@ -71,6 +106,7 @@ impl<T> LinkedList<T> {
             None => None,
             Some(node) => {
                 self.head = node.next;
+                self.len -= 1;
                 Some(node.data)
             }
         }
@@ -90,10 +126,6 @@ impl<T> LinkedList<T> {
         }
     }
 
-    pub fn into_iter(self) -> IntoIter<T> {
-        IntoIter(self)
-    }
-
     pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             next: self.head.as_deref(),
@@ -104,6 +136,18 @@ impl<T> LinkedList<T> {
         IterMut {
             next: self.head.as_deref_mut(),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn clear(&mut self) {
+        while self.pop().is_some() {}
     }
 }
 
@@ -162,5 +206,32 @@ mod tests {
         assert_eq!(list_2.pop(), Some(6));
         assert_eq!(list_2.pop(), Some(4));
         assert_eq!(list_2.pop(), Some(2));
+    }
+
+    #[test]
+    fn reference_loop() {
+        let mut list = LinkedList::new();
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        for value in &list {
+            println!("{}", value);
+        }
+    }
+
+    #[test]
+    fn test_iter_mut() {
+        let mut list = LinkedList::new();
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        for value in &mut list {
+            *value *= 2;
+        }
+        assert_eq!(list.pop(), Some(6));
+        assert_eq!(list.pop(), Some(4));
+        assert_eq!(list.pop(), Some(2));
     }
 }
