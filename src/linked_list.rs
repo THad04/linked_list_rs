@@ -13,6 +13,22 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
+impl<T> Extend<T> for LinkedList<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for item in iter {
+            self.push(item)
+        }
+    }
+}
+
+impl<T> FromIterator<T> for LinkedList<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut list = LinkedList::new();
+        list.extend(iter);
+        list
+    }
+}
+
 pub struct IntoIter<T>(LinkedList<T>);
 
 impl<T> IntoIterator for LinkedList<T> {
@@ -233,5 +249,43 @@ mod tests {
         assert_eq!(list.pop(), Some(6));
         assert_eq!(list.pop(), Some(4));
         assert_eq!(list.pop(), Some(2));
+    }
+
+    #[test]
+    fn length_test() {
+        let mut list = LinkedList::new();
+        assert_eq!(list.len(), 0);
+        list.push(1);
+        assert_eq!(list.len(), 1);
+        list.pop();
+        assert_eq!(list.len(), 0);
+    }
+
+    #[test]
+    fn is_empty() {
+        let mut list = LinkedList::new();
+        assert_eq!(list.is_empty(), true);
+        list.push(1);
+        assert_eq!(list.is_empty(), false);
+    }
+
+    #[test]
+    fn clear() {
+        let mut list = LinkedList::new();
+        list.push(1);
+        list.clear();
+        assert_eq!(list.is_empty(), true);
+    }
+
+    #[test]
+    fn default_works() {
+        let list = LinkedList::<i32>::default();
+        assert_eq!(list.is_empty(), true);
+    }
+
+    #[test]
+    fn drop_long_list_does_not_overflow() {
+        let mut list = LinkedList::new();
+        list.extend(0..1000000);
     }
 }
